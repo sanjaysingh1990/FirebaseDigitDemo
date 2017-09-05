@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">भाषा परीक्षण</string>
+    <string name="action_search">खोज</string>
+    <string name="action_change_pass" translatable="false">पासवर्ड बदलें</string>
+    <string name="action_logout" translatable="false">लोग आउट</string>
+    <string name="action_devinfo" translatable="false">डेवलपर</string>
+    <string name="action_settings" translatable="false">सेटिंग्स</string>
+    <string name="language_setting" translatable="false">भाषा बदलो</string>
+    <string name="share_app" translatable="false">ऐप साझा करें</string>
+</resources>
