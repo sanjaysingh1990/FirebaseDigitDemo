@@ -11,8 +11,11 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.FirebaseException;
 import com.google.firebase.FirebaseTooManyRequestsException;
@@ -22,13 +25,19 @@ import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.PhoneAuthCredential;
 import com.google.firebase.auth.PhoneAuthProvider;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Query;
+import com.google.firebase.database.ValueEventListener;
 
 
 import java.util.concurrent.TimeUnit;
 
 public class PhoneAuthActivity extends AppCompatActivity implements
         View.OnClickListener {
-
+    private DatabaseReference mDatabase;
     private static final String TAG = "PhoneAuthActivity";
 
     private static final String KEY_VERIFY_IN_PROGRESS = "key_verify_in_progress";
@@ -72,7 +81,7 @@ public class PhoneAuthActivity extends AppCompatActivity implements
         if (savedInstanceState != null) {
             onRestoreInstanceState(savedInstanceState);
         }
-
+        mDatabase = FirebaseDatabase.getInstance().getReference();
         // Assign views
         mPhoneNumberViews = (ViewGroup) findViewById(R.id.phone_auth_fields);
         mSignedInViews = (ViewGroup) findViewById(R.id.signed_in_buttons);
@@ -214,7 +223,7 @@ public class PhoneAuthActivity extends AppCompatActivity implements
     }
 
     private void verifyPhoneNumberWithCode(String verificationId, String code) {
-         // [START verify_with_code]
+        // [START verify_with_code]
         PhoneAuthCredential credential = PhoneAuthProvider.getCredential(verificationId, code);
         // [END verify_with_code]
         signInWithPhoneAuthCredential(credential);
@@ -244,6 +253,45 @@ public class PhoneAuthActivity extends AppCompatActivity implements
                             Log.d(TAG, "signInWithCredential:success");
 
                             FirebaseUser user = task.getResult().getUser();
+
+                            MyAppUser appuser = new MyAppUser();
+                            appuser.setUserName("SANJAY SINGH BISHT");
+                            appuser.setUserPhone(user.getPhoneNumber());
+
+
+                            mDatabase.child("users").child(user.getPhoneNumber()).setValue(appuser).addOnSuccessListener(PhoneAuthActivity.this, new OnSuccessListener<Void>() {
+                                @Override
+                                public void onSuccess(Void aVoid) {
+                                    Toast.makeText(PhoneAuthActivity.this, "informatin saved", Toast.LENGTH_LONG).show();
+
+
+
+                                }
+                            }).addOnFailureListener(PhoneAuthActivity.this, new OnFailureListener() {
+                                @Override
+                                public void onFailure(@NonNull Exception e) {
+                                    Toast.makeText(PhoneAuthActivity.this, "error:"+e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+
+                                }
+                            });
+
+//                             mDatabase.child("my_app_user").child(user.getUid()).orderByChild("userPhone").equalTo("+919411702581").addListenerForSingleValueEvent(new ValueEventListener() {
+//                                @Override
+//                                public void onDataChange(DataSnapshot dataSnapshot) {
+//                                       MyAppUser appuser=dataSnapshot.getValue(MyAppUser.class);
+//                                    Log.e("data","found"+dataSnapshot.toString());
+//                                }
+//
+//                                @Override
+//                                public void onCancelled(DatabaseError databaseError) {
+//                                    Log.e("dataerror",databaseError.getDetails()+"");
+//                                }
+//                            });
+
+
+                             checkPlayerNum(user.getPhoneNumber());
+
+
                             // [START_EXCLUDE]
                             updateUI(STATE_SIGNIN_SUCCESS, user);
                             // [END_EXCLUDE]
@@ -263,6 +311,56 @@ public class PhoneAuthActivity extends AppCompatActivity implements
                         }
                     }
                 });
+    }
+
+    public void checkPlayerNum(final String phoneNum) {
+
+        if (!TextUtils.isEmpty(phoneNum)) {
+            final Query phoneNumReference = mDatabase.child("users").orderByChild("userName").equalTo("SANJAY SINGH BISHT");
+
+            ValueEventListener phoneNumValueEventListener = new ValueEventListener() {
+                @Override
+                public void onDataChange(DataSnapshot dataSnapshot) {
+                    if (dataSnapshot.getValue() != null) {
+                        // user exists
+                        for (DataSnapshot childSnapshot: dataSnapshot.getChildren()) {
+                            String clubkey = childSnapshot.getKey();
+                            getUserInf(clubkey);
+
+
+                        }
+
+                    } else {
+                        Toast.makeText(getApplicationContext(), "****NOT FOUND****", Toast.LENGTH_LONG).show();
+                    }
+                }
+
+                @Override
+                public void onCancelled(DatabaseError databaseError) {}
+            };
+
+            phoneNumReference.addListenerForSingleValueEvent(phoneNumValueEventListener);
+
+
+        } else {
+            Log.e("Error","phoneNum is null");
+        }
+    }
+    void getUserInf(String userId) {
+      ValueEventListener  userValueEventListener = new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                // get user data
+                MyAppUser user = dataSnapshot.getValue(MyAppUser.class);
+               Log.e("data",dataSnapshot.toString());
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        };
+        mDatabase.child("users").child(userId).addListenerForSingleValueEvent(userValueEventListener);
     }
     // [END sign_in_with_phone]
 
@@ -341,7 +439,8 @@ public class PhoneAuthActivity extends AppCompatActivity implements
             mPhoneNumberViews.setVisibility(View.VISIBLE);
             mSignedInViews.setVisibility(View.GONE);
 
-            mStatusText.setText(R.string.signed_out);;
+            mStatusText.setText(R.string.signed_out);
+            ;
         } else {
             // Signed in
             mPhoneNumberViews.setVisibility(View.GONE);
